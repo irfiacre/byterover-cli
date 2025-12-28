@@ -1,0 +1,12 @@
+spawn brv
+
+expect "Activity"
+send -- "\t"
+
+expect "Use"
+send -- "/status\r"
+send -- "\r"
+
+expect eof
+
+puts "Pushing Done"
