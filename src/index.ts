@@ -2,12 +2,15 @@
 
 import { Command } from "commander";
 import * as fs from "fs/promises";
-import chalk from "chalk";
 import os from "os";
 import {
   BRV_PUSH_TEMPLATE,
   BRV_PULL_TEMPLATE,
 } from "./templates/command.template";
+import { checkGitStatusInParent, getAllFiles, logger } from "./utils/helpers";
+import chalk from "chalk";
+import { exit } from "process";
+import { handleGetAgentOutput } from "./agent/agent";
 
 const program = new Command();
 
@@ -43,6 +46,25 @@ async function setupCommands(): Promise<void> {
   }
 }
 
+async function buildContext(): Promise<void> {
+  if (!(await checkGitStatusInParent())) {
+    logger.debug(
+      "No changes made, there is no need to update the context tree"
+    );
+    exit(0);
+  }
+  // first get the current directory files, execpt those ignored
+  const allFiles = await getAllFiles();
+
+  const agentResult = await handleGetAgentOutput(
+    `This is my folder structure: ${JSON.stringify(allFiles)}`
+  );
+  console.log("====", agentResult);
+
+  // After getting the context from the agent
+  // save it to in a .custom-context direcory
+}
+
 program
   .name("byterover")
   .description(
@@ -55,5 +77,9 @@ program
   .description("Set up all the necessary commands for cursor or claude code")
   .action(setupCommands);
 
-// Parse command line arguments
+program
+  .name("context")
+  .description("Command build the context of the current directory.")
+  .action(buildContext);
+
 program.parse();
