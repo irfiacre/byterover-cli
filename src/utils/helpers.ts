@@ -10,10 +10,13 @@ export const logger = {
     console.log(chalk.green(message));
   },
   info: (message: string) => {
-    console.log(chalk.blue(message));
+    console.info(chalk.blue(message));
   },
   warning: (message: string) => {
     console.log(chalk.yellow(message));
+  },
+  error: (message: string) => {
+    console.error(chalk.yellow(message));
   },
   debug: (message: string) => {
     console.log(chalk.grey(message));

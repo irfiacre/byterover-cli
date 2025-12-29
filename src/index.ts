@@ -3,16 +3,13 @@
 import { Command } from "commander";
 import * as fs from "fs/promises";
 import os from "os";
-import {
-  BRV_PUSH_TEMPLATE,
-  BRV_PULL_TEMPLATE,
-} from "./templates/command.template";
+import { BUILD_CONTEXT_TREE_TEMPLATE } from "./templates/command.template";
 import { checkGitStatusInParent, getAllFiles, logger } from "./utils/helpers";
-import chalk from "chalk";
 import { exit } from "process";
 import { handleGetAgentOutput } from "./agent/agent";
 
 const program = new Command();
+const OUTPUT_DIR = ".custom-context-tree";
 
 async function setupCommands(): Promise<void> {
   try {
@@ -26,7 +23,7 @@ async function setupCommands(): Promise<void> {
       claudeCodeConfig ? claudeCodeLocation : null,
     ];
 
-    console.log(`\n${chalk.green("Setting up commands")}`);
+    logger.info("Setting up commands");
 
     for (const configLocation of configDirLocations) {
       if (!configLocation) {
@@ -34,14 +31,12 @@ async function setupCommands(): Promise<void> {
       }
       const commandsDirectory = `${configLocation}/commands`;
       await fs.mkdir(commandsDirectory, { recursive: true }); // Make sure that the commands directory exist
-      const pushFilePath = `${commandsDirectory}/brv_push.md`;
-      await fs.writeFile(pushFilePath, BRV_PUSH_TEMPLATE, "utf8");
-      const pullFilePath = `${commandsDirectory}/brv_pull.md`;
-      await fs.writeFile(pullFilePath, BRV_PULL_TEMPLATE, "utf8");
+      const pushFilePath = `${commandsDirectory}/build_context-tree.md`;
+      await fs.writeFile(pushFilePath, BUILD_CONTEXT_TREE_TEMPLATE, "utf8");
     }
-    console.log(chalk.green("Done"));
+    logger.success("Done");
   } catch (error) {
-    console.error(chalk.red(`${error}`));
+    logger.error(`${error}`);
     process.exit(1);
   }
 }
@@ -54,15 +49,36 @@ async function buildContext(): Promise<void> {
     exit(0);
   }
   // first get the current directory files, execpt those ignored
+  logger.info("Looking for all unignored files");
+
   const allFiles = await getAllFiles();
 
   const agentResult = await handleGetAgentOutput(
     `This is my folder structure: ${JSON.stringify(allFiles)}`
   );
-  console.log("====", agentResult);
+  const outputDir = `${process.cwd()}/${OUTPUT_DIR}`;
+
+  logger.info("Writing context files");
+  await fs.mkdir(outputDir, { recursive: true });
+  // Write README.md at root
+  await fs.writeFile(`${outputDir}/README.md`, agentResult.readme, "utf8");
+  // Helper to create subdirectory and context.md
+  async function writeCategoryContext(dirName: string, content: string) {
+    const dirPath = `${outputDir}/${dirName}`;
+    await fs.mkdir(dirPath, { recursive: true });
+    await fs.writeFile(`${dirPath}/context.md`, content ?? "", "utf8");
+  }
+  // Write all category markdowns
+  await writeCategoryContext("bug_fixes", agentResult.contextTree.bugFixes);
+  await writeCategoryContext("structure", agentResult.contextTree.structure);
+  await writeCategoryContext("compliance", agentResult.contextTree.compliance);
+  await writeCategoryContext("design", agentResult.contextTree.design);
+  await writeCategoryContext("testing", agentResult.contextTree.testing);
+  await writeCategoryContext("code_style", agentResult.contextTree.codeStyle);
 
   // After getting the context from the agent
   // save it to in a .custom-context direcory
+  logger.success("Finished creating the context successfully!");
 }
 
 program

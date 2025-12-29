@@ -1,3 +1,4 @@
+```markdown
 # ByteRover CLI Tool
 
 A modern TypeScript CLI for context-aware file and directory operations with a smart context builder.
@@ -116,3 +117,4 @@ npm run watch
 - See source code in `src/` for utility patterns and architecture.
 
 For more information, please read inline code comments or context files generated in the `.custom-context-tree` directory.
+```
